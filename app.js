@@ -297,7 +297,13 @@ function directoryRequest(action,inventorySnapshot){
     document.body.appendChild(form);
     const timeout=setTimeout(()=>{if(directoryNonce===nonce){directoryNonce=null;form.remove();reject(new Error('No reply from the sheet. Check the URL, access key, and web app deployment.'));}},20000);
     const finish=event=>{
-      if(event.source!==frame.contentWindow||!event.data||event.data.type!=='carry-directory'||event.data.nonce!==nonce)return;
+      // Apps Script redirects web-app responses to googleusercontent.com. Match
+      // the one-time nonce and Google's response origin; Safari can report the
+      // redirected iframe's source differently from its original window.
+      let responseHost='';
+      try{responseHost=new URL(event.origin).hostname;}catch{}
+      const fromAppsScript=responseHost==='script.google.com'||responseHost.endsWith('.googleusercontent.com');
+      if(!fromAppsScript||!event.data||event.data.type!=='carry-directory'||event.data.nonce!==nonce)return;
       clearTimeout(timeout);window.removeEventListener('message',finish);directoryNonce=null;form.remove();
       if(!event.data.ok){reject(new Error(event.data.error||'The sheet could not complete the request.'));return;}
       resolve(event.data);
