@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#172d29">
+  <meta name="description" content="Record boxes by voice and find what's inside on moving day.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="carry-icon.png">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Carry">
+  <link rel="stylesheet" href="styles.css">
+  <title>Carry · Moving day guide</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Carry home"><span class="brand-mark">C</span><span>carry<span class="brand-dot">.</span></span></a>
+    <div class="connection"><span class="pulse"></span><span id="offline-label">Ready offline</span></div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <p class="eyebrow">MOVING DAY · CANTERBURY</p>
+        <h1 id="page-title">Where should<br>this one <em>go?</em></h1>
+        <p class="intro">Record boxes by voice, then ask Carry what is in them and where they go. Your list stays on this phone and can sync to a shared directory.</p>
+      </div>
+    </section>
+
+    <form class="quick-find" id="typed-search">
+      <label for="search-query"><span class="eyebrow">QUICK FIND</span><span>Looking for something?</span></label>
+      <div class="search-form"><input id="search-query" type="search" placeholder="Try “kettle” or “Box 12”" autocomplete="off"><button type="submit">Find it</button></div>
+    </form>
+
+    <section class="workflow-grid" aria-label="Moving stages">
+      <article class="workflow-card packing-card" id="packing-card">
+        <p class="eyebrow">PACKING</p><h2>Record a box</h2>
+        <p>Answer a short voice prompt for each inventory column.</p>
+        <div class="workflow-status" id="packing-status">Ready to record</div>
+        <button class="workflow-button" id="packing-button" type="button" aria-pressed="false">Start packing dictation</button>
+      </article>
+      <article class="workflow-card unloading-card" id="unloading-card">
+        <p class="eyebrow">UNLOADING</p><h2>Find its room</h2>
+        <p>Keep listening for box IDs. Carry reads the location and notes.</p>
+        <div class="workflow-status" id="unloading-status">Ready to listen</div>
+        <button class="workflow-button" id="unloading-button" type="button" aria-pressed="false">Start unloading listener</button>
+      </article>
+      <article class="workflow-card unpacking-card" id="unpacking-card">
+        <p class="eyebrow">UNPACKING</p><h2>Find what you need</h2>
+        <p>Ask “Where is …?” and Carry will search box contents.</p>
+        <div class="workflow-status" id="unpacking-status">Ready to search</div>
+        <button class="workflow-button" id="unpacking-button" type="button" aria-pressed="false">Ask where it is</button>
+      </article>
+    </section>
+
+    <div class="voice-settings">
+      <label for="voice-select">SPOKEN VOICE</label>
+      <select id="voice-select" aria-label="Spoken voice"><option value="">System default</option></select>
+      <button id="voice-test" type="button">Test voice</button>
+      <span id="voice-help">On-device voices can work offline.</span>
+    </div>
+
+    <section class="answer" id="answer" aria-live="polite" aria-atomic="true">
+      <div class="answer-heading"><span class="answer-icon">↳</span><span id="answer-kicker">READY WHEN YOU ARE</span></div>
+      <div class="answer-body">
+        <div class="heard-wrap"><span class="field-label">WE HEARD</span><span class="heard" id="heard">—</span></div>
+        <div class="destination-wrap"><span class="field-label">TAKE IT TO</span><h2 id="destination">Start by saying a box number</h2><p id="details">The destination and any handling notes will appear here.</p></div>
+      </div>
+    </section>
+
+    <section class="inventory-section">
+      <div class="section-head"><div><p class="eyebrow">THE MOVE, AT A GLANCE</p><h2>Inventory <span id="item-count">0</span></h2></div><div class="inventory-actions"><button id="directory-button" class="button secondary" type="button">Connect directory</button><label class="button secondary" for="import-file">Import CSV</label><input id="import-file" type="file" accept=".csv,text/csv" hidden><button id="export-button" class="button secondary" type="button">Save CSV</button><button id="add-button" class="button primary" type="button">+ Add item</button></div></div>
+      <div class="directory-bar" id="directory-bar" hidden><span class="directory-indicator" id="directory-indicator"></span><span id="directory-status">Online directory connected</span><button id="directory-sync" class="text-button" type="button">Refresh from sheet</button><button id="directory-manage" class="text-button" type="button">Settings</button></div>
+      <p class="inventory-hint" id="inventory-hint">Packing saves new boxes here. Import a CSV to load an inventory; Save CSV exports the current table.</p>
+      <div class="table-wrap"><table><thead><tr><th>BOX / ITEM</th><th>SIZE</th><th>CONTENTS</th><th>DROP LOCATION</th><th>NOTES</th><th></th></tr></thead><tbody id="inventory-rows"></tbody></table><div class="mobile-cards" id="inventory-cards"></div><div class="empty-table" id="empty-table">No items yet. Add the first box or import your inventory.</div></div>
+    </section>
+  </main>
+
+  <dialog id="item-dialog">
+    <form id="item-form" method="dialog">
+      <div class="dialog-head"><div><p class="eyebrow">INVENTORY</p><h2 id="dialog-title">Add item</h2></div><button class="close-button" type="button" data-close aria-label="Close">×</button></div>
+      <input type="hidden" id="edit-id">
+      <label>Box number or item name<input id="item-id" required placeholder="e.g. Box 24 or Sofa"></label>
+      <div class="form-pair"><label>Box size<input id="item-size" placeholder="Small, medium…"></label><label>Drop location<input id="item-location" required placeholder="Upstairs bedroom"></label></div>
+      <label>Contents<input id="item-contents" placeholder="Books, winter clothes…"></label>
+      <label>Special notes<input id="item-notes" placeholder="Fragile, open first…"></label>
+      <div class="dialog-actions"><button class="button secondary" type="button" data-close>Cancel</button><button class="button primary" id="save-item" type="submit">Save item</button></div>
+    </form>
+  </dialog>
+  <dialog id="directory-dialog">
+    <form id="directory-form" method="dialog">
+      <div class="dialog-head"><div><p class="eyebrow">SHARED INVENTORY</p><h2>Online directory</h2></div><button class="close-button" type="button" data-directory-close aria-label="Close">×</button></div>
+      <p class="directory-copy">Connect a Google Sheet through a small Apps Script web app. Changes made in Carry are sent to the sheet. Use “Refresh from sheet” after editing it directly.</p>
+      <label>Apps Script web app URL<input id="directory-url" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="url"></label>
+      <label>Shared access key<input id="directory-key" type="password" placeholder="The key from your script settings" autocomplete="off"></label>
+      <p class="directory-feedback" id="directory-feedback" aria-live="polite">First set up the Google Apps Script using the included Carry guide, then paste its deployed URL and shared key here.</p>
+      <div class="directory-actions"><button class="button secondary" id="directory-disconnect" type="button">Disconnect</button><button class="button secondary" id="directory-download" type="button">Connect &amp; download</button><button class="button primary" id="directory-upload" type="button">Upload this list</button></div>
+    </form>
+  </dialog>
+  <iframe id="directory-frame" name="directory-frame" title="Directory sync" hidden></iframe>
+  <script src="app.js" defer></script>
+</body>
+</html>
