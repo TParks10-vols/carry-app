@@ -39,3 +39,9 @@ The script uses the five inventory columns `Box Number/ID`, `Box Size`, `Content
 - **Quick find** provides the same lookup in text when speaking is inconvenient or unsupported.
 
 Speech recognition availability varies by browser. On Android Chrome, browser speech recognition is used; it may use an online speech service. Carry does not run its own transcription service. Spoken answers use the device's speech voices.
+
+## Search update
+Box IDs can contain letters, numbers, or full names such as Ironing Board and Baby Bath. In Unloading, say the full ID or item name. The Where is the …? text field searches item names and contents with close matching for partial words and small spelling mistakes. Typed searches are silent. Voice search starts listening without an opening spoken prompt and still reads the results aloud.
+
+To install this update, publish index.html, app.js, styles.css, and sw.js together to the existing GitHub Pages site. Reopen Carry after deployment. Keep the existing Apps Script URL and access key.
+

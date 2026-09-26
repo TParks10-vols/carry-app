@@ -42,13 +42,17 @@
       </article>
       <article class="workflow-card unloading-card" id="unloading-card">
         <p class="eyebrow">UNLOADING</p><h2>Find its room</h2>
-        <p>Keep listening for box IDs. Carry reads the location and notes.</p>
+        <p>Say a box ID or item name, such as A12, Ironing Board, or Baby Bath. Carry reads the location and notes.</p>
         <div class="workflow-status" id="unloading-status">Ready to listen</div>
         <button class="workflow-button" id="unloading-button" type="button" aria-pressed="false">Start unloading listener</button>
       </article>
       <article class="workflow-card unpacking-card" id="unpacking-card">
         <p class="eyebrow">UNPACKING</p><h2>Find what you need</h2>
-        <p>Ask “Where is …?” and Carry will search box contents.</p>
+        <p>Type or ask “Where is …?” to search item names and contents, including close matches.</p>
+        <form id="unpacking-search" class="unpacking-search">
+          <label for="unpacking-query">Where is the …?</label>
+          <div class="search-form"><input id="unpacking-query" type="search" placeholder="Try kettle or baby bath" autocomplete="off"><button type="submit">Find</button></div>
+        </form>
         <div class="workflow-status" id="unpacking-status">Ready to search</div>
         <button class="workflow-button" id="unpacking-button" type="button" aria-pressed="false">Ask where it is</button>
       </article>
@@ -81,7 +85,7 @@
     <form id="item-form" method="dialog">
       <div class="dialog-head"><div><p class="eyebrow">INVENTORY</p><h2 id="dialog-title">Add item</h2></div><button class="close-button" type="button" data-close aria-label="Close">×</button></div>
       <input type="hidden" id="edit-id">
-      <label>Box number or item name<input id="item-id" required placeholder="e.g. Box 24 or Sofa"></label>
+      <label>Box ID or item name<input id="item-id" required placeholder="e.g. A12, Ironing Board, Baby Bath"></label>
       <div class="form-pair"><label>Box size<input id="item-size" placeholder="Small, medium…"></label><label>Drop location<input id="item-location" required placeholder="Upstairs bedroom"></label></div>
       <label>Contents<input id="item-contents" placeholder="Books, winter clothes…"></label>
       <label>Special notes<input id="item-notes" placeholder="Fragile, open first…"></label>

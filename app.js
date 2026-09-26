@@ -31,10 +31,9 @@ function renderInventory(){
   $('inventory-cards').innerHTML=inventory.map((item,index)=>`<article class="mobile-card"><header><strong>${escapeHtml(item.id)}</strong><span>${escapeHtml(item.location||'Location not set')}</span></header><dl>${[['Contents',item.contents],['Size',item.size],['Notes',item.notes]].filter(([,value])=>value).map(([label,value])=>`<div><dt>${label}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}</dl><footer><button data-edit="${index}">Edit</button><button class="delete" data-delete="${index}">Delete</button></footer></article>`).join('');
 }
 function normalize(value){return String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
-function numberFromSpeech(text){
-  const digits=String(text||'').match(/\d+/);if(digits)return digits[0];
+function boxKey(text){
   const words={zero:'0',oh:'0',one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10',eleven:'11',twelve:'12',thirteen:'13',fourteen:'14',fifteen:'15',sixteen:'16',seventeen:'17',eighteen:'18',nineteen:'19',twenty:'20'};
-  const tokens=normalize(text).split(' ');const at=tokens.findIndex(word=>word==='box'||word==='number');return words[tokens[at>=0?at+1:0]]||null;
+  return normalize(text).replace(/^(box number|box|number) /,'').split(' ').map(word=>words[word]??word).join('');
 }
 function showAnswer(kicker,title,details){$('answer-kicker').textContent=kicker;$('destination').textContent=title;$('details').textContent=details}
 function updateModeUI(){
@@ -72,10 +71,10 @@ function speechForLocation(item){
   return location+(notes?` ${notes}, please.`:'');
 }
 function lookupBox(raw){
-  const query=normalize(raw);$('heard').textContent=raw||'—';
+  const query=normalize(raw).replace(/^where (does|should) (.+) go$/, '$2').replace(/^(where is|where s|find|locate) /,'').replace(/^the /,'');$('heard').textContent=raw||'—';
   if(!query){showAnswer('UNLOADING','Say a box ID','Carry will read the destination and special instructions.');return}
-  const boxKey=value=>normalize(value).replace(/^box /,'');
-  const exact=inventory.filter(row=>boxKey(row.id)===boxKey(query));
+  const literal=inventory.filter(row=>normalize(row.id)===query);
+  const exact=literal.length?literal:inventory.filter(row=>boxKey(row.id)===boxKey(query));
   const matches=exact.length?exact:inventory.filter(row=>(query.length>=3&&normalize(row.contents).includes(query))||(query.length>=3&&normalize(row.id).includes(query)));
   if(matches.length===1){const item=matches[0];showAnswer('UNLOADING · BOX FOUND',item.location||'Location not set',[item.id,item.size,item.contents,item.notes].filter(Boolean).join(' · ')||'No extra details recorded.');speakingText(speechForLocation(item));}
   else if(matches.length>1){showAnswer('UNLOADING · MULTIPLE MATCHES',matches.map(item=>item.id).join(' · '),'Say the full box ID to choose one.');}
@@ -158,6 +157,7 @@ function handleVoiceEntryAnswer(transcript){
 
 function distanceAtMostOne(a,b){
   if(Math.abs(a.length-b.length)>1)return false;
+  if(a.length===b.length){const different=[];for(let k=0;k<a.length;k++)if(a[k]!==b[k])different.push(k);if(different.length===2){const [x,y]=different;if(y===x+1&&a[x]===b[y]&&a[y]===b[x])return true;}}
   let i=0,j=0,diff=0;
   while(i<a.length&&j<b.length){if(a[i]===b[j]){i++;j++;continue;}if(++diff>1)return false;if(a.length>b.length)i++;else if(b.length>a.length)j++;else{i++;j++;}}
   return diff+(i<a.length||j<b.length?1:0)<=1;
@@ -167,36 +167,35 @@ function unpackQuery(text){
   const ignored=new Set(['a','an','the','is','in','of','for','my','our','please','where','box','boxes']);
   return query.split(' ').filter(word=>word&&!ignored.has(word));
 }
-function searchContents(transcript){
+function searchContents(transcript,{speak=true}={}){
   const queryWords=unpackQuery(transcript);$('heard').textContent=transcript;
   if(!queryWords.length){finishActiveMode('No item name heard');showAnswer('UNPACKING','I did not catch the item','Ask “Where is…” followed by a contents description.');return;}
   const query=queryWords.join(' ');
   const scored=inventory.map(item=>{
-    const content=normalize(item.contents);const contentWords=content.split(' ').filter(Boolean);
+    const content=normalize(`${item.id} ${item.contents}`);const contentWords=content.split(' ').filter(Boolean);
     if(!content)return{item,score:0};
     if(content.includes(query))return{item,score:1};
     const tokenScores=queryWords.map(word=>{
       if(contentWords.includes(word))return 1;
       if(word.length>=4&&contentWords.some(candidate=>candidate.startsWith(word)||word.startsWith(candidate)))return .78;
-      if(word.length>=5&&contentWords.some(candidate=>candidate.length>=5&&distanceAtMostOne(word,candidate)))return .65;
+      if(word.length>=4&&contentWords.some(candidate=>candidate.length>=4&&distanceAtMostOne(word,candidate)))return .65;
       return 0;
     });
     return{item,score:tokenScores.reduce((sum,value)=>sum+value,0)/tokenScores.length};
   }).filter(entry=>entry.score>=.45).sort((a,b)=>b.score-a.score).slice(0,4).map(entry=>entry.item);
   finishActiveMode(scored.length?'Search complete':'No contents match');
-  if(!scored.length){showAnswer('UNPACKING · NO CLOSE MATCH','No box found','Try a different word or phrase from the contents list.');speakingText('I could not find a close match. Try another description.');return;}
+  if(!scored.length){showAnswer('UNPACKING · NO CLOSE MATCH','No box found','Try a different word or phrase from the item name or contents.');if(speak)speakingText('I could not find a close match. Try another description.');return;}
   const descriptions=scored.map(item=>`${item.id} — ${item.location||'location not set'}${item.contents?` (${item.contents})`:''}`);
   const title=scored.length===1?`Box ${scored[0].id}`:`Possible boxes: ${scored.map(item=>item.id).join(', ')}`;
   showAnswer('UNPACKING · CONTENTS MATCH',title,descriptions.join(' · '));
-  speakingText(scored.length===1?`I found it in Box ${scored[0].id}, at ${scored[0].location||'a location not set'}.`:`Possible matches. ${scored.map(item=>`Box ${item.id}, at ${item.location||'a location not set'}.`).join(' ')}`);
+  if(speak)speakingText(scored.length===1?`I found it in Box ${scored[0].id}, at ${scored[0].location||'a location not set'}.`:`Possible matches. ${scored.map(item=>`Box ${item.id}, at ${item.location||'a location not set'}.`).join(' ')}`);
 }
 function routeTranscript(transcript){
   $('heard').textContent=transcript;
   if(activeMode==='packing'){handleVoiceEntryAnswer(transcript);return;}
   if(activeMode==='unpacking'){searchContents(transcript);return;}
   if(activeMode==='unloading'){
-    const number=numberFromSpeech(transcript);
-    if(number)lookupBox(number);else showAnswer('UNLOADING · NUMBER UNCLEAR','Say a box ID',`We heard “${transcript}”. Try saying “Box 12”.`);
+    lookupBox(transcript);
   }
 }
 
@@ -260,7 +259,7 @@ async function startMode(mode){
   try{recognition.start();}
   catch{listening=false;activeMode=null;setModeStatus(mode,'Microphone is starting; click again');return;}
   if(mode==='unloading')showAnswer('UNLOADING · LISTENING','Say a box ID','Carry will read the destination and special instructions.');
-  else{showAnswer('UNPACKING · LISTENING','Ask “Where is…”','Say the item or contents you want to find. Carry will listen for one question.');speakingText('What are you looking for? Ask where is, followed by the item name.');}
+  else{showAnswer('UNPACKING · LISTENING','Ask “Where is…”','Say the item or contents you want to find. Carry will listen for one question.');}
 }
 function stopMode(status='Ready'){
   const mode=activeMode;if(!mode)return;
@@ -381,6 +380,7 @@ function refreshVoiceOptions(){
 for(const mode of Object.keys(modeButtons))$(modeButtons[mode]).addEventListener('click',()=>activeMode===mode?stopMode():startMode(mode));
 $('add-button').addEventListener('click',()=>openEditor());
 $('typed-search').addEventListener('submit',event=>{event.preventDefault();const query=$('search-query').value.trim();if(!query)return;if(/^#?\s*\d+$/i.test(query)||/^box\s+\S+/i.test(query))lookupBox(query);else searchContents(query);});
+$('unpacking-search').addEventListener('submit',event=>{event.preventDefault();const query=$('unpacking-query').value.trim();if(query)searchContents(query,{speak:false});});
 $('item-form').addEventListener('submit',submitItem);
 document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>$('item-dialog').close()));
 function handleInventoryAction(event){const edit=event.target.dataset.edit,del=event.target.dataset.delete;if(edit!==undefined)openEditor(inventory[Number(edit)],Number(edit));if(del!==undefined&&confirm(`Delete ${inventory[Number(del)].id}?`)){inventory.splice(Number(del),1);saveInventory();}}
